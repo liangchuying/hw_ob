@@ -58,7 +58,6 @@ class OBSClient {
     return putFile(objectName, File(filePath));
   }
 
-  /// 获取列举对象
   static Future<Response> get(String objectName,
       {Map<String, dynamic>? queryParameters,
       String xObsAcl = "public-read"}) async {

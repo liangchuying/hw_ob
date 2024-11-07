@@ -122,7 +122,8 @@ class _MyHomePageState extends State<MyHomePage> {
           children: <Widget>[
             ElevatedButton(
                 onPressed: () async {
-                  Response res = await OBSClient.get('/', queryParameters: { "prefix": "dev/", "delimiter": "/"});
+                  Response res = await OBSClient.get('/',
+                      queryParameters: {"prefix": "dev/", "delimiter": "/"});
                   final myTransformer = Xml2Json();
                   myTransformer.parse(res.data);
                   var json = myTransformer.toOpenRally();
@@ -147,13 +148,17 @@ class _MyHomePageState extends State<MyHomePage> {
                   }
                 },
                 child: Text("上传文件")),
-            ElevatedButton(onPressed: () async {
-              Response res = await OBSClient.head('dev/T4441-230208-73DA1A7756484722.txt');
+            ElevatedButton(
+                onPressed: () async {
+                  Response res = await OBSClient.head(
+                      'dev/T4441-230208-73DA1A7756484722.txt');
 
-              Map<String, dynamic> headers = res.headers.map;
-              // getHeadersInfo();
-              logger.f(headers);
-            }, child: Text('获取元数据'))
+                  Map<String, dynamic> headers = res.headers.map;
+                  var InterfaceResult = parseCommonHeaders(headers);
+
+                  logger.f(InterfaceResult);
+                },
+                child: Text('获取元数据'))
           ],
         ),
       ),

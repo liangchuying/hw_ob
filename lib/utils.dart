@@ -66,27 +66,27 @@ String getRFC1123Date() {
   return HttpDate.format(DateTime.now());
 }
 
-dynamic getHeadersInfo(Headers headers) {
+// listObjects
+
+Map<String, dynamic> parseCommonHeaders(Map<String, dynamic> headers) {
   Map<String, String> ObsSignatureContext = {
-    'signature': 'obs',
+    // 'signature': 'obs',
     'headerPrefix': 'x-obs-',
     'headerMetaPrefix': 'x-obs-meta-',
-    'authPrefix': 'OBS'
+    // 'authPrefix': 'OBS'
   };
 
-  var metadata = {};
+  Map<String, dynamic> InterfaceResult = {};
 
   print(jsonEncode(headers));
-  // for(var key in ){
-  //   print(key);
-  //   // if ({}.hasOwnProperty.call(headers, key)) {
-  //   //   var k = key.toString().toLowerCase();
-  //   //   if (k.indexOf(ObsSignatureContext) == 0) {
-  //   //     metadata[k.slice(ObsSignatureContext.length)] = headers[key];
-  //   //   }
-  //   // }
-  // }
-  return metadata;
+  headers.forEach((key, value) {
+    if (key.contains(ObsSignatureContext['headerMetaPrefix']!)) {
+      var _key = key.substring(ObsSignatureContext['headerMetaPrefix']!.length);
+      print(value);
+      // InterfaceResult[_key] = value;
 
-  return '';
+      InterfaceResult[_key] = Uri.decodeComponent(value[0]);
+    }
+  });
+  return InterfaceResult;
 }
