@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter_demo/utils.dart';
 import 'package:xml2json/xml2json.dart';
 
 import 'obs_client.dart';
@@ -125,13 +126,9 @@ class _MyHomePageState extends State<MyHomePage> {
                   final myTransformer = Xml2Json();
                   myTransformer.parse(res.data);
                   var json = myTransformer.toOpenRally();
-
                   logger.f(json);
-
-                  // Response res = await OBSClient.head('dev/T4441-230208-73DA1A7756484722.txt');
-                  // logger.f(res.data);
                 },
-                child: Text('获取文件')),
+                child: Text('列举对象')),
             ElevatedButton(
                 onPressed: () async {
                   FilePickerResult? result =
@@ -150,9 +147,13 @@ class _MyHomePageState extends State<MyHomePage> {
                   }
                 },
                 child: Text("上传文件")),
-            ElevatedButton(onPressed: () {
+            ElevatedButton(onPressed: () async {
+              Response res = await OBSClient.head('dev/T4441-230208-73DA1A7756484722.txt');
 
-            }, child: Text('解析XML'))
+              Map<String, dynamic> headers = res.headers.map;
+              // getHeadersInfo();
+              logger.f(headers);
+            }, child: Text('获取元数据'))
           ],
         ),
       ),

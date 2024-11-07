@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:crypto/crypto.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -63,4 +64,29 @@ Future<String> getFileMd5Base64(File file) async {
 
 String getRFC1123Date() {
   return HttpDate.format(DateTime.now());
+}
+
+dynamic getHeadersInfo(Headers headers) {
+  Map<String, String> ObsSignatureContext = {
+    'signature': 'obs',
+    'headerPrefix': 'x-obs-',
+    'headerMetaPrefix': 'x-obs-meta-',
+    'authPrefix': 'OBS'
+  };
+
+  var metadata = {};
+
+  print(jsonEncode(headers));
+  // for(var key in ){
+  //   print(key);
+  //   // if ({}.hasOwnProperty.call(headers, key)) {
+  //   //   var k = key.toString().toLowerCase();
+  //   //   if (k.indexOf(ObsSignatureContext) == 0) {
+  //   //     metadata[k.slice(ObsSignatureContext.length)] = headers[key];
+  //   //   }
+  //   // }
+  // }
+  return metadata;
+
+  return '';
 }
