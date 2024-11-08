@@ -100,6 +100,7 @@ class OBSClient {
     Options options = Options(headers: headers);
 
     Dio dio = _getDio();
+
     return await dio.head(url,
         options: options, queryParameters: queryParameters);
   }

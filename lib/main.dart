@@ -158,7 +158,18 @@ class _MyHomePageState extends State<MyHomePage> {
 
                   logger.f(InterfaceResult);
                 },
-                child: Text('获取元数据'))
+                child: Text('获取元数据')),
+            ElevatedButton(
+                onPressed: () {
+                  String url = createV2SignedUrl({
+                    'BucketName': 'cs-example',
+                    'objectKey': 'dev/T4441-230208-73DA1A7756484722.txt',
+                    'Method': "GET"
+                  });
+
+                  logger.f(url);
+                },
+                child: Text('获取下载地址'))
           ],
         ),
       ),

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ffi';
 import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
@@ -67,26 +68,184 @@ String getRFC1123Date() {
 }
 
 // listObjects
+Map<String, String> commonHeaders = {
+  'content-length': 'ContentLength',
+  'date': 'Date',
+  'x-reserved': 'Reserved'
+};
+
+Map<String, String> ObsSignatureContext = {
+  // 'signature': 'obs',
+  'headerPrefix': 'x-obs-',
+  'headerMetaPrefix': 'x-obs-meta-',
+  // 'authPrefix': 'OBS'
+};
 
 Map<String, dynamic> parseCommonHeaders(Map<String, dynamic> headers) {
-  Map<String, String> ObsSignatureContext = {
-    // 'signature': 'obs',
-    'headerPrefix': 'x-obs-',
-    'headerMetaPrefix': 'x-obs-meta-',
-    // 'authPrefix': 'OBS'
+  Map<String, dynamic> opt = {
+    "CommonMsg": {
+      // "Status" : serverback.status,
+      "Code": '',
+      "Message": '',
+      "HostId": '',
+      "RequestId": '',
+      "InterfaceResult": null
+    },
+    "InterfaceResult": {}
   };
 
-  Map<String, dynamic> InterfaceResult = {};
+  for (var Key in commonHeaders.keys) {
+    opt["InterfaceResult"][Key] = commonHeaders[Key];
+  }
 
-  print(jsonEncode(headers));
   headers.forEach((key, value) {
     if (key.contains(ObsSignatureContext['headerMetaPrefix']!)) {
       var _key = key.substring(ObsSignatureContext['headerMetaPrefix']!.length);
-      print(value);
-      // InterfaceResult[_key] = value;
-
-      InterfaceResult[_key] = Uri.decodeComponent(value[0]);
+      opt["InterfaceResult"][_key] = Uri.decodeComponent(value[0]);
     }
   });
-  return InterfaceResult;
+  return opt;
+}
+
+///---------------------------------------------------
+class getSignResultOpt {
+  final Map<dynamic, dynamic> queryParams;
+  final Map<dynamic, dynamic> queryParamsKeys;
+  final dynamic objectKey;
+  final dynamic bucketName;
+  final Map<dynamic, dynamic>? signatureContext;
+
+  getSignResultOpt(
+      {required this.queryParams,
+      required this.queryParamsKeys,
+      this.objectKey,
+      this.bucketName,
+      required this.signatureContext});
+
+  factory getSignResultOpt.frmmJson(Map<dynamic, dynamic> json) {
+    return getSignResultOpt(
+        queryParams: json['queryParams'],
+        queryParamsKeys: json['queryParamsKeys'],
+        objectKey: json['objectKey'],
+        bucketName: json['bucketName'],
+        signatureContext: json['signatureContext']);
+  }
+}
+
+String createV2SignedUrl(Map<String, dynamic> param) {
+  var date = HttpDate.format(DateTime.now());
+  String signContent =
+      "GET\n\n\n$date\n/${param["BucketName"]}/${param["objectKey"]}";
+
+  var result = getSignResult(getSignResultOpt.frmmJson(getQueryParams(param)),
+      'HKXFQ7HJT01TX8USG2RX', '');
+
+  result +=
+      'Signature=${encodeURIWithSafe(signContent.toHmacSha1Base64('wRz6IohO3k294UYrCXfvo16dBEkRBP3QbaDfzq46'), '/', false)}';
+
+  return 'https://cs-example.obs.cn-south-1.myhuaweicloud.com:443/$result';
+}
+
+String getSignResult(opt, ak, stsToken) {
+  // 获取计算签名时的resuvar
+  // var {bucketName, objectKey, signatureContext, isShareFolder, queryParams, queryParamsKeys} = opt
+
+  opt.queryParams['AccessKeyId'] = ak;
+  // opt.queryParamsKeys.add('AccessKeyId');
+
+  var result = '';
+
+  if (opt.objectKey) {
+    opt.objectKey = encodeURIWithSafe(opt.objectKey, '/', false);
+    result += '/' + opt.objectKey;
+  }
+  result += '?';
+
+  opt.queryParamsKeys.sort();
+  var safeKey = opt.isShareFolder ? '' : '/';
+  for (var i = 0; i < opt.queryParamsKeys.length; i++) {
+    var key = opt.queryParamsKeys[i];
+    var val = opt.queryParams[key];
+    key = encodeURIWithSafe(key, safeKey, false);
+    val = encodeURIWithSafe(val, safeKey, false);
+    result += key;
+
+    if (val) {
+      result += '=' + val;
+    }
+    result += '&';
+  }
+  return result;
+}
+
+String encodeURIWithSafe(str, safe, skipEncoding) {
+  str = str.toString();
+  if (str.length == 0) {
+    return '';
+  }
+  if (skipEncoding) {
+    return str;
+  }
+  var ret;
+  if (safe) {
+    ret = [];
+    for (var element in str) {
+      ret.push(
+          safe.indexOf(element) >= 0 ? element : Uri.encodeComponent(element));
+    }
+    ret = ret.join('');
+  } else {
+    ret = Uri.encodeComponent(str);
+  }
+  return ret
+      .replaceAll('!', '%21')
+      .replaceAll('*', '%2A')
+      .replaceAll("'", '%27')
+      .replaceAll('(', '%28')
+      .replaceAll(')', '%29');
+}
+
+Map<String, dynamic> getQueryParams(param) {
+  var policy = null;
+  var prefix = null;
+  var expires = 300;
+  // 循环获取参数中的queryParams
+  var queryParams = {};
+
+  var specialParam = null;
+
+  // 添加specialParam
+  var signatureContext = {
+    'authPrefix': "OBS",
+    'headerMetaPrefix': "x-obs-meta-",
+    'headerPrefix': "x-obs-",
+    'signature': "obs"
+  };
+
+  expires = int.parse((DateTime.now().millisecondsSinceEpoch ~/ 1000).toString(),
+          radix: 10) +
+      expires;
+
+  queryParams['Expires'] = expires.toString();
+
+  var queryParamsKeys = [];
+  queryParams.keys.forEach((e) {
+    queryParamsKeys.add(e);
+  });
+
+  queryParamsKeys.sort();
+
+  return {"queryParams": queryParams, "queryParamsKeys": queryParams};
+}
+
+dynamic covertStorageClass(storageClass, signature) {
+  if (!['storageClass', 'storagePolicy'].contains(storageClass)) {
+    return null;
+  }
+  if (signature == 'obs') {
+    return 'storageClass';
+  }
+  if (signature == 'v2') {
+    return 'storagePolicy';
+  }
 }
