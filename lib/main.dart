@@ -163,7 +163,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 onPressed: () {
                   String url = createV2SignedUrl({
                     'BucketName': 'cs-example',
-                    'objectKey': 'dev/T4441-230208-73DA1A7756484722.txt',
+                    'objectKey': 'dev/Screenshot_2024-10-20-16-00-19-750_com.tencent.mm.jpg',
                     'Method': "GET"
                   });
 

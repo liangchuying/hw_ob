@@ -133,48 +133,47 @@ class getSignResultOpt {
 }
 
 String createV2SignedUrl(Map<String, dynamic> param) {
-  var date = HttpDate.format(DateTime.now());
-  String signContent =
-      "GET\n\n\n$date\n/${param["BucketName"]}/${param["objectKey"]}";
+  Map<String, dynamic> mergedMap = {};
+  Map<String, dynamic> queryParams = getQueryParams(param);
+  queryParams.addAll(param);
+  print(queryParams['queryParams']);
+  mergedMap.addAll(queryParams);
 
-  var result = getSignResult(getSignResultOpt.frmmJson(getQueryParams(param)),
-      'HKXFQ7HJT01TX8USG2RX', '');
+  String signContent =
+      "GET\n\n\n${queryParams['queryParams']['Expires']}\n/${param["BucketName"]}/${param["objectKey"]}";
+
+  var result = getSignResult(
+      getSignResultOpt.frmmJson(mergedMap), 'HKXFQ7HJT01TX8USG2RX', '');
 
   result +=
       'Signature=${encodeURIWithSafe(signContent.toHmacSha1Base64('wRz6IohO3k294UYrCXfvo16dBEkRBP3QbaDfzq46'), '/', false)}';
 
-  return 'https://cs-example.obs.cn-south-1.myhuaweicloud.com:443/$result';
+  return 'https://cs-example.obs.cn-south-1.myhuaweicloud.com$result';
 }
 
 String getSignResult(opt, ak, stsToken) {
   // 获取计算签名时的resuvar
-  // var {bucketName, objectKey, signatureContext, isShareFolder, queryParams, queryParamsKeys} = opt
-
   opt.queryParams['AccessKeyId'] = ak;
-  // opt.queryParamsKeys.add('AccessKeyId');
 
   var result = '';
 
-  if (opt.objectKey) {
-    opt.objectKey = encodeURIWithSafe(opt.objectKey, '/', false);
-    result += '/' + opt.objectKey;
+  if (opt.objectKey.isNotEmpty) {
+    result += '/' + encodeURIWithSafe(opt.objectKey, '/', false);
   }
   result += '?';
 
-  opt.queryParamsKeys.sort();
-  var safeKey = opt.isShareFolder ? '' : '/';
-  for (var i = 0; i < opt.queryParamsKeys.length; i++) {
-    var key = opt.queryParamsKeys[i];
-    var val = opt.queryParams[key];
-    key = encodeURIWithSafe(key, safeKey, false);
-    val = encodeURIWithSafe(val, safeKey, false);
+  for(var k in opt.queryParamsKeys.keys) {
+    var val = opt.queryParamsKeys[k];
+    var key = encodeURIWithSafe(k, '', false);
+    val = encodeURIWithSafe(val, '', false);
     result += key;
 
-    if (val) {
-      result += '=' + val;
+    if (val.isNotEmpty) {
+      result += '=$val';
     }
     result += '&';
   }
+
   return result;
 }
 
@@ -187,12 +186,14 @@ String encodeURIWithSafe(str, safe, skipEncoding) {
     return str;
   }
   var ret;
-  if (safe) {
+  if (safe.isNotEmpty) {
     ret = [];
-    for (var element in str) {
-      ret.push(
-          safe.indexOf(element) >= 0 ? element : Uri.encodeComponent(element));
+
+    for (int i = 0; i < str.length; i++) {
+      String v = str[i];
+      ret.add(safe.contains(v) ? v : Uri.encodeComponent(v));
     }
+
     ret = ret.join('');
   } else {
     ret = Uri.encodeComponent(str);
@@ -222,7 +223,8 @@ Map<String, dynamic> getQueryParams(param) {
     'signature': "obs"
   };
 
-  expires = int.parse((DateTime.now().millisecondsSinceEpoch ~/ 1000).toString(),
+  expires = int.parse(
+          (DateTime.now().millisecondsSinceEpoch ~/ 1000).toString(),
           radix: 10) +
       expires;
 
