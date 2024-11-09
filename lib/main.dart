@@ -3,14 +3,13 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter_demo/utils.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:xml2json/xml2json.dart';
-
-import 'obs_client.dart';
-import 'obs_response.dart';
 import 'package:xml/xml.dart';
 
 import 'package:logger/logger.dart';
+
+import 'obs.dart';
 
 var logger = Logger(
   printer: PrettyPrinter(),
@@ -48,6 +47,7 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      builder: EasyLoading.init(),
     );
   }
 }
@@ -135,14 +135,14 @@ class _MyHomePageState extends State<MyHomePage> {
                   FilePickerResult? result =
                       await FilePicker.platform.pickFiles();
 
-                  // OBSClient.putFile()
                   if (result != null) {
                     print(result.files.single.path!);
                     File file = File(result.files.single.path!);
-                    OBSResponse? res = await OBSClient.putFile(
+                    Response res = await FileObjectApi.putFile(
                         'dev/${result.files.single.name}', file);
 
-                    print('----${res}');
+                    logger.f('----${res.headers}');
+                    logger.f('----${res.statusCode}');
                   } else {
                     // User canceled the picker
                   }
@@ -150,8 +150,8 @@ class _MyHomePageState extends State<MyHomePage> {
                 child: Text("上传文件")),
             ElevatedButton(
                 onPressed: () async {
-                  Response res = await OBSClient.head(
-                      'dev/T4441-230208-73DA1A7756484722.txt');
+                  Response res = await FileObjectApi.getObjectMetadata(
+                      't45/系统文件/客服/seatsKf_100058_-15/downloadfile-1.mp4');
 
                   Map<String, dynamic> headers = res.headers.map;
                   var InterfaceResult = parseCommonHeaders(headers);
@@ -163,7 +163,9 @@ class _MyHomePageState extends State<MyHomePage> {
                 onPressed: () {
                   String url = createV2SignedUrl({
                     'BucketName': 'cs-example',
-                    'objectKey': 'dev/Screenshot_2024-10-20-16-00-19-750_com.tencent.mm.jpg',
+                    // 'objectKey': 'dev/Screenshot_2024-10-20-16-00-19-750_com.tencent.mm.jpg',
+                    'objectKey': 't45/系统文件/客服/video/下载.mp4',
+                    // 'objectKey': 'dev/video(16).mp4',
                     'Method': "GET"
                   });
 

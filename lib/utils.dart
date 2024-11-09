@@ -1,10 +1,4 @@
-import 'dart:convert';
-import 'dart:ffi';
-import 'dart:io';
-import 'package:crypto/crypto.dart';
-import 'package:dio/dio.dart';
-import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+part of './obs.dart';
 
 extension StringMd5Ext on String {
   List<int> toMD5Bytes() {
@@ -75,10 +69,10 @@ Map<String, String> commonHeaders = {
 };
 
 Map<String, String> ObsSignatureContext = {
-  // 'signature': 'obs',
+  'signature': 'obs',
   'headerPrefix': 'x-obs-',
   'headerMetaPrefix': 'x-obs-meta-',
-  // 'authPrefix': 'OBS'
+  'authPrefix': 'OBS'
 };
 
 Map<String, dynamic> parseCommonHeaders(Map<String, dynamic> headers) {
@@ -133,17 +127,16 @@ class getSignResultOpt {
 }
 
 String createV2SignedUrl(Map<String, dynamic> param) {
-  Map<String, dynamic> mergedMap = {};
-  Map<String, dynamic> queryParams = getQueryParams(param);
-  queryParams.addAll(param);
-  print(queryParams['queryParams']);
-  mergedMap.addAll(queryParams);
+  Map<String, dynamic> queryParams = getQueryParams(param)..addAll(param);
+
+  var bucketName = encodeURIWithSafe('/${param["BucketName"]}/${param["objectKey"]}', '/', false);
 
   String signContent =
-      "GET\n\n\n${queryParams['queryParams']['Expires']}\n/${param["BucketName"]}/${param["objectKey"]}";
+      "GET\n\n\n${queryParams['queryParams']['Expires']}\n$bucketName";
 
+  print(signContent);
   var result = getSignResult(
-      getSignResultOpt.frmmJson(mergedMap), 'HKXFQ7HJT01TX8USG2RX', '');
+      getSignResultOpt.frmmJson(queryParams), 'HKXFQ7HJT01TX8USG2RX', '');
 
   result +=
       'Signature=${encodeURIWithSafe(signContent.toHmacSha1Base64('wRz6IohO3k294UYrCXfvo16dBEkRBP3QbaDfzq46'), '/', false)}';
@@ -162,7 +155,7 @@ String getSignResult(opt, ak, stsToken) {
   }
   result += '?';
 
-  for(var k in opt.queryParamsKeys.keys) {
+  for (var k in opt.queryParamsKeys.keys) {
     var val = opt.queryParamsKeys[k];
     var key = encodeURIWithSafe(k, '', false);
     val = encodeURIWithSafe(val, '', false);
@@ -198,6 +191,7 @@ String encodeURIWithSafe(str, safe, skipEncoding) {
   } else {
     ret = Uri.encodeComponent(str);
   }
+
   return ret
       .replaceAll('!', '%21')
       .replaceAll('*', '%2A')
@@ -207,28 +201,16 @@ String encodeURIWithSafe(str, safe, skipEncoding) {
 }
 
 Map<String, dynamic> getQueryParams(param) {
-  var policy = null;
-  var prefix = null;
   var expires = 300;
   // 循环获取参数中的queryParams
   var queryParams = {};
-
-  var specialParam = null;
-
-  // 添加specialParam
-  var signatureContext = {
-    'authPrefix': "OBS",
-    'headerMetaPrefix': "x-obs-meta-",
-    'headerPrefix': "x-obs-",
-    'signature': "obs"
-  };
 
   expires = int.parse(
           (DateTime.now().millisecondsSinceEpoch ~/ 1000).toString(),
           radix: 10) +
       expires;
 
-  queryParams['Expires'] = expires.toString();
+  queryParams['Expires'] = '$expires';
 
   var queryParamsKeys = [];
   queryParams.keys.forEach((e) {
@@ -238,16 +220,4 @@ Map<String, dynamic> getQueryParams(param) {
   queryParamsKeys.sort();
 
   return {"queryParams": queryParams, "queryParamsKeys": queryParams};
-}
-
-dynamic covertStorageClass(storageClass, signature) {
-  if (!['storageClass', 'storagePolicy'].contains(storageClass)) {
-    return null;
-  }
-  if (signature == 'obs') {
-    return 'storageClass';
-  }
-  if (signature == 'v2') {
-    return 'storagePolicy';
-  }
 }

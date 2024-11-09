@@ -1,3 +1,5 @@
+part of './obs.dart';
+
 class OBSResponse {
   String? objectName;
   String? fileName;
@@ -19,13 +21,13 @@ class InterfaceResult {
   final String Prefix;
 
   InterfaceResult(
-      this.Bucket,
-      this.CommonPrefixes,
-      this.ContentLength,
-      this.Contents,
-      this.Date,
-      this.Delimiter,
+      {required this.Bucket,
+      required this.CommonPrefixes,
+      required this.ContentLength,
+      required this.Contents,
+      required this.Date,
+      required this.Delimiter,
       this.EncodingType,
-      this.MaxKeys,
-      this.Prefix);
+      required this.MaxKeys,
+      required this.Prefix});
 }
