@@ -105,6 +105,67 @@ class OBSClient {
     }
   }
 
+  static Future<Response> putCopy(
+      {required String destinationObjectName,
+      required String sourceObject}) async {
+
+    sourceObject = encodeURIWithSafe(sourceObject, '/', false);
+    destinationObjectName =
+        encodeURIWithSafe(destinationObjectName, '/', false);
+
+    String url = "$domain/$destinationObjectName";
+
+    var date = HttpDate.format(DateTime.now());
+
+    Map<String, String> headers = {};
+    headers["Date"] = date;
+    headers["x-obs-copy-source"] = '/$bucketName/$sourceObject';
+    headers["Authorization"] = _sign(
+        "PUT",
+        '',
+        '',
+        date,
+        "x-obs-copy-source:/$bucketName/$sourceObject",
+        "/$bucketName/$destinationObjectName");
+
+    Options options = Options(headers: headers);
+
+    Dio dio = _getDio();
+
+    try {
+      Response response = await dio.put(url, options: options);
+      return response;
+    } on DioException catch (e) {
+      return e.response!;
+    }
+  }
+
+  static Future<Response> delete(String objectName) async {
+    if (objectName.startsWith("/")) {
+      objectName = objectName.substring(1);
+    }
+
+    String url = "$domain/$objectName";
+    var date = HttpDate.format(DateTime.now());
+
+    Map<String, String> headers = {};
+
+    headers["Date"] = date;
+    headers["Authorization"] =
+        _sign("DELETE", '', '', date, "", "/$bucketName/$objectName");
+
+    Options options = Options(headers: headers);
+
+    Dio dio = _getDio();
+
+    try {
+      Response response = await dio.delete(url, options: options);
+      return response;
+    } on DioException catch (e) {
+      return e.response!;
+    }
+  }
+
   static String _sign(String httpMethod, String contentMd5, String contentType,
       String date, String acl, String res) {
     if (ak.isEmpty || sk.isEmpty) {

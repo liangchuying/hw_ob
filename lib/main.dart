@@ -171,7 +171,19 @@ class _MyHomePageState extends State<MyHomePage> {
 
                   logger.f(url);
                 },
-                child: Text('获取下载地址'))
+                child: Text('获取下载地址')),
+            ElevatedButton(
+                onPressed: () async {
+                  Response res = await FileObjectApi.deleteObjects('dev/Screenshot_2024-10-20-16-00-19-750_com.tencent.mm.jpg');
+                  logger.f(res.statusCode);
+                },
+                child: Text('删除对象')),
+            ElevatedButton(
+                onPressed: () async {
+                  Response res = await FileObjectApi.copyObject('dev/新建 XLS 工作表.xls', 't45/系统文件/客服/seatsKf_100058_-15/新建 XLS 工作表.xls');
+                  logger.f(res.statusCode);
+                },
+                child: Text('拷贝对象')),
           ],
         ),
       ),

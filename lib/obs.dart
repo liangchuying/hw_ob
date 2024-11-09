@@ -17,7 +17,7 @@ part './utils.dart';
 /// 文档地址 https://support.huaweicloud.com/api-obs/obs_04_0115.html
 class FileObjectApi {
   /// 获取临时文件路径
-  /// key === objectKey  实例：key = 't45/系统文件/客服/video/下载.mp4'
+  /// key === objectKey  示例：key = 't45/系统文件/客服/video/下载.mp4'
   static String getFileDownLoadUrl(String key) {
     return createV2SignedUrl({
       'BucketName': OBSClient.bucketName,
@@ -65,16 +65,35 @@ class FileObjectApi {
   }
 
   /// 获取元数据对象
-  /// key 实例 'dev/video(16).mp4'
+  /// key 示例 'dev/video(16).mp4'
   /// ??? 元数据没有单独封装一个字段，待优化 Metadata
   static Future<Response> getObjectMetadata(String key) async {
     return await OBSClient.head(key);
   }
 
+  // 修改元数据
+
   /// 获取列举对象
-  /// key 实例 dev/
+  /// key 示例 dev/
   static Future<Response> getListObjects(String key) async {
     return await OBSClient.get('/',
         queryParameters: {"prefix": key, "delimiter": "/"});
+  }
+
+  /// 删除对象 key 示例 'dev/video(16).mp4'
+  static Future<Response> deleteObjects(String key) async {
+    return await OBSClient.delete(key);
+  }
+
+  /// 拷贝对象
+  /// destinationObjectName  目标对象 示例：dev/新建 XLS 工作表.xls
+  ///  sourceObject 元对象拷贝对象 示例 t45/系统文件/客服/seatsKf_100058_-15/新建 XLS 工作表.xls
+  ///  ？？？ 拷贝元对象 还是重新赋值元对象 待优化
+  ///  https://support.huaweicloud.com/api-obs/obs_04_0082.html
+  static Future<Response> copyObject(
+      String destinationObjectName, String sourceObject) async {
+    return await OBSClient.putCopy(
+        destinationObjectName: destinationObjectName,
+        sourceObject: sourceObject);
   }
 }
