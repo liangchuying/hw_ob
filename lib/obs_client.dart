@@ -6,21 +6,37 @@ class OBSClient {
   static String bucketName = kReleaseMode ? '' : 'cs-example';
   static String domain = 'https://$bucketName.obs.cn-south-1.myhuaweicloud.com';
 
-  static Dio _getDio() {
-    var dio = Dio();
-    dio.interceptors.add(PrettyDioLogger(
-        requestHeader: true, requestBody: true, responseHeader: true));
-    return dio;
+  static late final Dio _dio;
+
+  static OBSClient? _instance;
+
+  factory OBSClient() {
+    OBSClient._instance ??= OBSClient._initial();
+    return OBSClient._instance!;
   }
 
-  static Future<Response> get(String objectName,
+  OBSClient._initial() {
+    final BaseOptions options = BaseOptions(
+      baseUrl: domain,
+      sendTimeout: const Duration(seconds: 5),
+      connectTimeout: const Duration(seconds: 5),
+      receiveTimeout: const Duration(seconds: 5),
+    );
+
+    _dio = Dio(options);
+
+    _dio.interceptors.add(PrettyDioLogger(
+        requestHeader: true, requestBody: true, responseHeader: true));
+  }
+
+  Future<Response> get(String objectName,
       {Map<String, dynamic>? queryParameters,
       String xObsAcl = "public-read"}) async {
     if (objectName.startsWith("/")) {
       objectName = objectName.substring(1);
     }
 
-    String url = "${domain}/";
+    String url = "/";
     var date = HttpDate.format(DateTime.now());
     Map<String, String> headers = {};
 
@@ -28,12 +44,12 @@ class OBSClient {
     headers["Authorization"] =
         _sign("GET", '', '', date, "", "/$bucketName/$objectName");
 
-    Options options = Options(headers: headers);
-
-    Dio dio = _getDio();
+    Options options = Options()
+      ..method = 'get'
+      ..headers = headers;
 
     try {
-      Response response = await dio.get(url,
+      Response response = await _dio.request(url,
           options: options, queryParameters: queryParameters);
       return response;
     } on DioException catch (e) {
@@ -41,7 +57,7 @@ class OBSClient {
     }
   }
 
-  static Future<Response> head(String objectName,
+  Future<Response> head(String objectName,
       {Map<String, dynamic>? queryParameters,
       String xObsAcl = "public-read"}) async {
     if (objectName.startsWith("/")) {
@@ -50,7 +66,7 @@ class OBSClient {
 
     objectName = encodeURIWithSafe(objectName, '/', false);
 
-    String url = "${domain}/$objectName";
+    String url = "/$objectName";
     var date = HttpDate.format(DateTime.now());
     Map<String, String> headers = {};
 
@@ -58,12 +74,12 @@ class OBSClient {
     headers["Authorization"] =
         _sign("HEAD", '', '', date, "", "/$bucketName/$objectName");
 
-    Options options = Options(headers: headers);
-
-    Dio dio = _getDio();
+    Options options = Options()
+      ..method = 'head'
+      ..headers = headers;
 
     try {
-      Response response = await dio.head(url,
+      Response response = await _dio.request(url,
           options: options, queryParameters: queryParameters);
       return response;
     } on DioException catch (e) {
@@ -71,14 +87,14 @@ class OBSClient {
     }
   }
 
-  static Future<Response> put(String objectName, data, String md5, int size,
+  Future<Response> put(String objectName, data, String md5, int size,
       {ProgressCallback? onSendProgress,
       String xObsAcl = "public-read"}) async {
     if (objectName.startsWith("/")) {
       objectName = objectName.substring(1);
     }
 
-    String url = "${domain}/$objectName";
+    String url = "/$objectName";
 
     var contentMD5 = md5;
     var date = HttpDate.format(DateTime.now());
@@ -92,12 +108,13 @@ class OBSClient {
     headers["Authorization"] = _sign("PUT", contentMD5, contentType, date,
         "x-obs-acl:$xObsAcl", "/$bucketName/$objectName");
 
-    Options options = Options(headers: headers, contentType: contentType);
-
-    Dio dio = _getDio();
+    Options options = Options()
+      ..method = 'put'
+      ..headers = headers
+      ..contentType = contentType;
 
     try {
-      Response response = await dio.put(url,
+      Response response = await _dio.request(url,
           data: data, options: options, onSendProgress: onSendProgress);
       return response;
     } on DioException catch (e) {
@@ -105,15 +122,14 @@ class OBSClient {
     }
   }
 
-  static Future<Response> putCopy(
+  Future<Response> putCopy(
       {required String destinationObjectName,
       required String sourceObject}) async {
-
     sourceObject = encodeURIWithSafe(sourceObject, '/', false);
     destinationObjectName =
         encodeURIWithSafe(destinationObjectName, '/', false);
 
-    String url = "$domain/$destinationObjectName";
+    String url = "/$destinationObjectName";
 
     var date = HttpDate.format(DateTime.now());
 
@@ -128,24 +144,24 @@ class OBSClient {
         "x-obs-copy-source:/$bucketName/$sourceObject",
         "/$bucketName/$destinationObjectName");
 
-    Options options = Options(headers: headers);
-
-    Dio dio = _getDio();
+    Options options = Options()
+      ..method = 'put'
+      ..headers = headers;
 
     try {
-      Response response = await dio.put(url, options: options);
+      Response response = await _dio.request(url, options: options);
       return response;
     } on DioException catch (e) {
       return e.response!;
     }
   }
 
-  static Future<Response> delete(String objectName) async {
+  Future<Response> delete(String objectName) async {
     if (objectName.startsWith("/")) {
       objectName = objectName.substring(1);
     }
 
-    String url = "$domain/$objectName";
+    String url = "/$objectName";
     var date = HttpDate.format(DateTime.now());
 
     Map<String, String> headers = {};
@@ -154,12 +170,12 @@ class OBSClient {
     headers["Authorization"] =
         _sign("DELETE", '', '', date, "", "/$bucketName/$objectName");
 
-    Options options = Options(headers: headers);
-
-    Dio dio = _getDio();
+    Options options = Options()
+      ..method = 'delete'
+      ..headers = headers;
 
     try {
-      Response response = await dio.delete(url, options: options);
+      Response response = await _dio.request(url, options: options);
       return response;
     } on DioException catch (e) {
       return e.response!;

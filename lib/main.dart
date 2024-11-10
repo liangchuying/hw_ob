@@ -122,12 +122,10 @@ class _MyHomePageState extends State<MyHomePage> {
           children: <Widget>[
             ElevatedButton(
                 onPressed: () async {
-                  Response res = await OBSClient.get('/',
-                      queryParameters: {"prefix": "dev/", "delimiter": "/"});
-                  final myTransformer = Xml2Json();
-                  myTransformer.parse(res.data);
-                  var json = myTransformer.toOpenRally();
+                  String json = await FileObjectApi.getListObjects('dev/');
+
                   logger.f(json);
+                  logger.f(json.runtimeType);
                 },
                 child: Text('列举对象')),
             ElevatedButton(
@@ -174,13 +172,16 @@ class _MyHomePageState extends State<MyHomePage> {
                 child: Text('获取下载地址')),
             ElevatedButton(
                 onPressed: () async {
-                  Response res = await FileObjectApi.deleteObjects('dev/Screenshot_2024-10-20-16-00-19-750_com.tencent.mm.jpg');
+                  Response res = await FileObjectApi.deleteObjects(
+                      'dev/T4441-230208-73DA1A7756484722.txt');
                   logger.f(res.statusCode);
                 },
                 child: Text('删除对象')),
             ElevatedButton(
                 onPressed: () async {
-                  Response res = await FileObjectApi.copyObject('dev/新建 XLS 工作表.xls', 't45/系统文件/客服/seatsKf_100058_-15/新建 XLS 工作表.xls');
+                  Response res = await FileObjectApi.copyObject(
+                      'dev/新建 XLS 工作表.xls',
+                      't45/系统文件/客服/seatsKf_100058_-15/新建 XLS 工作表.xls');
                   logger.f(res.statusCode);
                 },
                 child: Text('拷贝对象')),

@@ -6,6 +6,7 @@ import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
+import 'package:xml2json/xml2json.dart';
 
 part './obs_client.dart';
 
@@ -30,10 +31,11 @@ class FileObjectApi {
   static Future<Response> putObject(String objectName, List<int> data,
       {ProgressCallback? onSendProgress,
       String xObsAcl = "public-read"}) async {
+    OBSClient obsClient = OBSClient();
     String contentMD5 = data.toMD5Base64();
     int size = data.length;
     var stream = Stream.fromIterable(data.map((e) => [e]));
-    return await OBSClient.put(objectName, stream, contentMD5, size,
+    return await obsClient.put(objectName, stream, contentMD5, size,
         onSendProgress: onSendProgress, xObsAcl: xObsAcl);
   }
 
@@ -41,9 +43,10 @@ class FileObjectApi {
   static Future<Response> putString(String objectName, String content,
       {ProgressCallback? onSendProgress,
       String xObsAcl = "public-read"}) async {
+    OBSClient obsClient = OBSClient();
     var contentMD5 = content.toMD5Base64();
     var size = content.length;
-    return await OBSClient.put(objectName, content, contentMD5, size,
+    return await obsClient.put(objectName, content, contentMD5, size,
         onSendProgress: onSendProgress, xObsAcl: xObsAcl);
   }
 
@@ -51,9 +54,10 @@ class FileObjectApi {
   static Future<Response> putFile(String objectName, File file,
       {ProgressCallback? onSendProgress,
       String xObsAcl = "public-read"}) async {
+    OBSClient obsClient = OBSClient();
     var contentMD5 = await getFileMd5Base64(file);
     var stream = file.openRead();
-    return await OBSClient.put(
+    return await obsClient.put(
         objectName, stream, contentMD5, await file.length(),
         onSendProgress: onSendProgress, xObsAcl: xObsAcl);
   }
@@ -68,21 +72,27 @@ class FileObjectApi {
   /// key 示例 'dev/video(16).mp4'
   /// ??? 元数据没有单独封装一个字段，待优化 Metadata
   static Future<Response> getObjectMetadata(String key) async {
-    return await OBSClient.head(key);
+    OBSClient obsClient = OBSClient();
+    return await obsClient.head(key);
   }
 
   // 修改元数据
 
   /// 获取列举对象
   /// key 示例 dev/
-  static Future<Response> getListObjects(String key) async {
-    return await OBSClient.get('/',
-        queryParameters: {"prefix": key, "delimiter": "/"});
+  static Future<String> getListObjects(String key) async {
+    OBSClient obsClient = OBSClient();
+    Response res = await obsClient
+        .get('/', queryParameters: {"prefix": key, "delimiter": "/"});
+    final myTransformer = Xml2Json();
+    myTransformer.parse(res.data);
+    return myTransformer.toOpenRally();
   }
 
   /// 删除对象 key 示例 'dev/video(16).mp4'
   static Future<Response> deleteObjects(String key) async {
-    return await OBSClient.delete(key);
+    OBSClient obsClient = OBSClient();
+    return await obsClient.delete(key);
   }
 
   /// 拷贝对象
@@ -92,7 +102,8 @@ class FileObjectApi {
   ///  https://support.huaweicloud.com/api-obs/obs_04_0082.html
   static Future<Response> copyObject(
       String destinationObjectName, String sourceObject) async {
-    return await OBSClient.putCopy(
+    OBSClient obsClient = OBSClient();
+    return await obsClient.putCopy(
         destinationObjectName: destinationObjectName,
         sourceObject: sourceObject);
   }
